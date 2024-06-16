@@ -1,6 +1,4 @@
 ---
-# handlers file for code-server-instance
----
 - name: Restart code-server
   systemd:
     name: code-server
