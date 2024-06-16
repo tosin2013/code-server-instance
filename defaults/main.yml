@@ -8,3 +8,4 @@ code_server_password: "securepassword"
 ssl_type: "self-signed"  # Options: "letsencrypt", "self-signed"
 domain: "yourdomain.com"  # Required for Let's Encrypt and self-signed
 email: "youremail@example.com"  # Required for Let's Encrypt
+ansible_user: "ubuntu"
