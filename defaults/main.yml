@@ -1,0 +1,10 @@
+---
+# defaults file for code-server-instance
+mysql_root_password: "strongpassword"
+mysql_database: "npm"
+mysql_user: "npm"
+mysql_password: "password"
+code_server_password: "securepassword"
+ssl_type: "self-signed"  # Options: "letsencrypt", "self-signed"
+domain: "yourdomain.com"  # Required for Let's Encrypt and self-signed
+email: "youremail@example.com"  # Required for Let's Encrypt

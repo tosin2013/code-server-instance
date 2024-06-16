@@ -1,0 +1,108 @@
+---
+# tasks file for code-server-instance
+---
+- name: Update and upgrade apt packages
+  apt:
+    update_cache: yes
+    upgrade: dist
+
+- name: Install required packages
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+      - openssl
+    state: present
+
+- name: Add Docker GPG key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add Docker repository
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable
+    state: present
+
+- name: Install Docker and Docker Compose
+  apt:
+    name:
+      - docker-ce
+      - docker-compose
+    state: present
+
+- name: Create Nginx Proxy Manager directory
+  file:
+    path: ~/nginx-proxy-manager
+    state: directory
+
+- name: Copy docker-compose.yml for Nginx Proxy Manager
+  copy:
+    src: docker-compose.yml
+    dest: ~/nginx-proxy-manager/docker-compose.yml
+
+- name: Ensure Nginx Proxy Manager is running
+  docker_compose:
+    project_src: ~/nginx-proxy-manager
+    state: present
+
+- name: Install code-server
+  shell: curl -fsSL https://code-server.dev/install.sh | sh
+
+- name: Create systemd service file for code-server
+  template:
+    src: code-server.service.j2
+    dest: /etc/systemd/system/code-server.service
+
+- name: Reload systemd and start code-server service
+  systemd:
+    daemon_reload: yes
+    name: code-server
+    state: started
+    enabled: yes
+
+- name: Configure UFW firewall
+  ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop:
+    - 80
+    - 81
+    - 443
+    - 8080
+
+- name: Generate self-signed certificate
+  when: ssl_type == "self-signed"
+  openssl_certificate:
+    path: /etc/letsencrypt/live/{{ domain }}/fullchain.pem
+    privatekey_path: /etc/letsencrypt/live/{{ domain }}/privkey.pem
+    provider: selfsigned
+    common_name: "{{ domain }}"
+    days: 365
+
+- name: Set up proxy host for code-server with self-signed certificate
+  when: ssl_type == "self-signed"
+  shell: |
+    sudo docker exec -it $(sudo docker ps -qf "ancestor=jc21/nginx-proxy-manager:latest") /bin/bash -c "
+    mkdir -p /etc/letsencrypt/live/{{ domain }}
+    cp /etc/letsencrypt/live/{{ domain }}/fullchain.pem /etc/letsencrypt/live/{{ domain }}/fullchain.pem
+    cp /etc/letsencrypt/live/{{ domain }}/privkey.pem /etc/letsencrypt/live/{{ domain }}/privkey.pem
+    cat <<EOP | mysql -u root -p'{{ mysql_root_password }}' {{ mysql_database }}
+    INSERT INTO proxy_host (domain_names, forward_host, forward_port, access_list_id, certificate_id, ssl_forced)
+    VALUES ('{{ domain }}', '127.0.0.1', 8080, 0, (SELECT id FROM certificate WHERE domain_names = '{{ domain }}'), 1);
+    EOP
+    "
+
+- name: Set up SSL certificate for code-server using Let's Encrypt
+  when: ssl_type == "letsencrypt"
+  shell: |
+    sudo docker exec -it $(sudo docker ps -qf "ancestor=jc21/nginx-proxy-manager:latest") /bin/bash -c "
+    certbot --nginx -d {{ domain }} --non-interactive --agree-tos --email {{ email }}
+    cat <<EOP | mysql -u root -p'{{ mysql_root_password }}' {{ mysql_database }}
+    INSERT INTO proxy_host (domain_names, forward_host, forward_port, access_list_id, certificate_id, ssl_forced)
+    VALUES ('{{ domain }}', '127.0.0.1', 8080, 0, (SELECT id FROM certificate WHERE domain_names = '{{ domain }}'), 1);
+    EOP
+    "
