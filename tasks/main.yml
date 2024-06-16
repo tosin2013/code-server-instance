@@ -78,6 +78,13 @@
     mkdir -p /etc/letsencrypt/live/{{ domain }}
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/letsencrypt/live/{{ domain }}/privkey.pem -out /etc/letsencrypt/live/{{ domain }}/fullchain.pem -subj "/CN={{ domain }}"
 
+- name: Create necessary directories for self-signed certificates in Nginx Proxy Manager volume
+  when: ssl_type == "self-signed"
+  file:
+    path: ~/nginx-proxy-manager/letsencrypt/live/{{ domain }}
+    state: directory
+    mode: '0755'
+
 - name: Copy self-signed certificate to Nginx Proxy Manager volume
   when: ssl_type == "self-signed"
   copy:
