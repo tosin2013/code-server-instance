@@ -1,6 +1,4 @@
 ---
-# tasks file for code-server-instance
----
 - name: Update and upgrade apt packages
   apt:
     update_cache: yes
