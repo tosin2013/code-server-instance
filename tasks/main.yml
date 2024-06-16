@@ -74,20 +74,14 @@
 
 - name: Generate self-signed certificate
   when: ssl_type == "self-signed"
-  openssl_certificate:
-    path: /etc/letsencrypt/live/{{ domain }}/fullchain.pem
-    privatekey_path: /etc/letsencrypt/live/{{ domain }}/privkey.pem
-    provider: selfsigned
-    common_name: "{{ domain }}"
-    days: 365
+  shell: |
+    mkdir -p /etc/letsencrypt/live/{{ domain }}
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/letsencrypt/live/{{ domain }}/privkey.pem -out /etc/letsencrypt/live/{{ domain }}/fullchain.pem -subj "/CN={{ domain }}"
 
 - name: Set up proxy host for code-server with self-signed certificate
   when: ssl_type == "self-signed"
   shell: |
     sudo docker exec -it $(sudo docker ps -qf "ancestor=jc21/nginx-proxy-manager:latest") /bin/bash -c "
-    mkdir -p /etc/letsencrypt/live/{{ domain }}
-    cp /etc/letsencrypt/live/{{ domain }}/fullchain.pem /etc/letsencrypt/live/{{ domain }}/fullchain.pem
-    cp /etc/letsencrypt/live/{{ domain }}/privkey.pem /etc/letsencrypt/live/{{ domain }}/privkey.pem
     cat <<EOP | mysql -u root -p'{{ mysql_root_password }}' {{ mysql_database }}
     INSERT INTO proxy_host (domain_names, forward_host, forward_port, access_list_id, certificate_id, ssl_forced)
     VALUES ('{{ domain }}', '127.0.0.1', 8080, 0, (SELECT id FROM certificate WHERE domain_names = '{{ domain }}'), 1);
