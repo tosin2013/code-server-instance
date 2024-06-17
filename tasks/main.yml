@@ -14,13 +14,6 @@
     password: "{{ 'ubuntu' | password_hash('sha512') }}"
     update_password: on_create
 
-# allow ubuntu to run docker commands without sudo
-- name: Add ubuntu user to docker group
-  user:
-    name: ubuntu
-    groups: docker
-    append: yes
-    
 - name: Install required packages
   apt:
     name:
@@ -48,6 +41,13 @@
       - docker-compose
     state: present
 
+# allow ubuntu to run docker commands without sudo
+- name: Add ubuntu user to docker group
+  user:
+    name: ubuntu
+    groups: docker
+    append: yes
+    
 - name: Create Nginx Proxy Manager directory
   file:
     path: ~/nginx-proxy-manager
