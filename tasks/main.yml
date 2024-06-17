@@ -4,6 +4,16 @@
     update_cache: yes
     upgrade: dist
 
+- name: Create ubuntu user
+  user:
+    name: ubuntu
+    state: present
+    shell: /bin/bash
+    groups: sudo
+    append: yes
+    password: "{{ 'ubuntu' | password_hash('sha512') }}"
+    update_password: on_create
+
 - name: Install required packages
   apt:
     name:
