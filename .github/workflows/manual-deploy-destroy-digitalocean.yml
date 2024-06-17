@@ -57,7 +57,7 @@ jobs:
       id: generate_name
       if: github.event.inputs.delete_vm != 'true'
       run: |
-        NAME="code-server-$(date +%s)"
+        NAME="codeserver-$(date +%s)"
         echo "droplet_name=${NAME}" >> $GITHUB_ENV
 
     - name: Create Droplet
