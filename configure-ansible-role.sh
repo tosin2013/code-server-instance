@@ -1,10 +1,27 @@
 #!/bin/bash
 
+if [ ]
+if [ -z "$1" ]; then
+    echo "Please provide the name of the host to configure."
+    exit 1
+fi
+
+
 # Define variables
 ROLE_NAME="code-server-instance"
 ROLE_REPO="https://github.com/tosin2013/code-server-instance.git"
 INVENTORY_FILE="inventory"
 PLAYBOOK_FILE="playbook.yml"
+
+# Check if the hostname is already set to the provided value
+CURRENT_HOSTNAME=$(hostnamectl status --static)
+
+if [ "$CURRENT_HOSTNAME" != "$1" ]; then
+    hostnamectl set-hostname "$1"
+    echo "Hostname has been set to $1"
+else
+    echo "Hostname is already set to $1"
+fi
 
 # Update and upgrade the system
 sudo apt update && sudo apt upgrade -y

@@ -9,7 +9,7 @@ on:
         required: true
       project_name:
         description: 'Project name'
-        default: 'devika'
+        default: 'code-server-instance'
         required: true
       script_name:
         description: 'Script name'
@@ -142,7 +142,7 @@ jobs:
           git clone -b ${{ github.event.inputs.git_branch }} ${{ github.event.inputs.repo_url }} ${{ github.event.inputs.project_name }}
           cd ${{ github.event.inputs.project_name }}
           chmod +x ${{ github.event.inputs.script_name }}
-          ${{ github.event.inputs.script_name }} || exit $?
+          ${{ github.event.inputs.script_name }}  ${{ env.droplet_name }} || exit $?
 
     - name: Destroy Droplet
       if: github.event.inputs.delete_vm == 'true' && github.event.inputs.vm_name != ''
