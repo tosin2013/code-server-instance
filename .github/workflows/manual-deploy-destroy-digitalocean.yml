@@ -124,10 +124,23 @@ jobs:
                   }
                 ]
               }
+            },
+            {
+              "Action": "UPSERT",
+              "ResourceRecordSet": {
+                "Name": "*.${{ env.droplet_name }}.${{ github.event.inputs.domain_name }}",
+                "Type": "A",
+                "TTL": 300,
+                "ResourceRecords": [
+                  {
+                    "Value": "${{ env.droplet_ip }}"
+                  }
+                ]
+              }
             }
           ]
         }'
-
+      
     - name: Run scripts on Droplet
       if: github.event.inputs.delete_vm != 'true'
       uses: appleboy/ssh-action@v0.1.10
