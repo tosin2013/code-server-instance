@@ -7,6 +7,7 @@ fi
 
 
 # Define variables
+export DEBIAN_FRONTEND=noninteractive
 ROLE_NAME="code-server-instance"
 ROLE_REPO="https://github.com/tosin2013/code-server-instance.git"
 INVENTORY_FILE="inventory"
