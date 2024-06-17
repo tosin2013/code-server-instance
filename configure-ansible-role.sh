@@ -1,4 +1,7 @@
 #!/bin/bash
+export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+set -x
+export DEBIAN_FRONTEND=noninteractive
 
 # Check if a hostname is provided
 if [ -z "$1" ]; then
@@ -7,7 +10,6 @@ if [ -z "$1" ]; then
 fi
 
 # Define variables
-export DEBIAN_FRONTEND=noninteractive
 ROLE_NAME="code-server-instance"
 ROLE_REPO="https://github.com/tosin2013/code-server-instance.git"
 INVENTORY_FILE="inventory"
