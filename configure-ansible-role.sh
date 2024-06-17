@@ -1,6 +1,5 @@
 #!/bin/bash
 
-if [ ]
 if [ -z "$1" ]; then
     echo "Please provide the name of the host to configure."
     exit 1
