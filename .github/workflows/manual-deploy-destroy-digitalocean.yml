@@ -73,7 +73,7 @@ jobs:
 
     - name: Wait for Droplet to be Ready
       if: github.event.inputs.delete_vm != 'true'
-      run: sleep 30
+      run: sleep 60
 
     - name: Get Droplet IP
       if: github.event.inputs.delete_vm != 'true'
