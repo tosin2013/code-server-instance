@@ -46,7 +46,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Install doctl
       uses: digitalocean/action-doctl@v2
@@ -98,13 +98,16 @@ jobs:
       if: github.event.inputs.delete_vm != 'true'
       run: sleep 60
 
-    - name: Register IP in Route 53
+    - name: Configure AWS Credentials
       if: github.event.inputs.delete_vm != 'true'
-      uses: aws-actions/configure-aws-credentials@v1
+      uses: aws-actions/configure-aws-credentials@2
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ github.event.inputs.aws_region }}s
+        aws-region: ${{ github.event.inputs.aws_region }}
+
+    - name: Register IP in Route 53
+      if: github.event.inputs.delete_vm != 'true'
       run: |
         aws route53 change-resource-record-sets --hosted-zone-id ${{ secrets.AWS_HOSTED_ZONE_ID }} --change-batch '
         {
@@ -112,7 +115,7 @@ jobs:
             {
               "Action": "UPSERT",
               "ResourceRecordSet": {
-                "Name": " ${{ env.droplet_name }}.${{ github.event.inputs.domain_name }}",
+                "Name": "${{ env.droplet_name }}.${{ github.event.inputs.domain_name }}",
                 "Type": "A",
                 "TTL": 300,
                 "ResourceRecords": [
