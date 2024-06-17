@@ -1,0 +1,147 @@
+name: Deploy and Destroy DigitalOcean Droplet
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo_url:
+        description: 'Git repository URL'
+        default: 'https://github.com/tosin2013/code-server-instance.git'
+        required: true
+      project_name:
+        description: 'Project name'
+        default: 'devika'
+        required: true
+      script_name:
+        description: 'Script name'
+        default: './configure-ansible-role.sh'
+        required: true
+      git_branch:
+        description: 'Git branch to checkout'
+        default: 'main'
+        required: true
+      delete_vm:
+        description: 'Set to true to delete the VM by name'
+        default: 'false'
+        required: true
+        type: choice
+        options:
+          - "true" 
+          - "false"
+      vm_name:
+        description: 'Name of the VM to delete'
+        default: ''
+        required: false
+      domain_name:
+        description: 'Domain name to register'
+        default: 'devika.example.com'
+        required: true
+      aws_region:
+        description: 'AWS region'
+        default: 'us-east-1'
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install doctl
+      uses: digitalocean/action-doctl@v2
+      with:
+        token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+    - name: Generate Droplet Name
+      id: generate_name
+      if: github.event.inputs.delete_vm != 'true'
+      run: |
+        NAME="devika-$(date +%s)"
+        echo "droplet_name=${NAME}" >> $GITHUB_ENV
+
+    - name: Create Droplet
+      if: github.event.inputs.delete_vm != 'true'
+      run: |
+        doctl compute droplet create ${{ env.droplet_name }} \
+          --region nyc3 \
+          --image ubuntu-22-04-x64 \
+          --size s-2vcpu-2gb-amd \
+          --vpc-uuid ${{ secrets.VPC_ID }} \
+          --ssh-keys ${{ secrets.SSH_KEY }} \
+          --wait
+
+    - name: Wait for Droplet to be Ready
+      if: github.event.inputs.delete_vm != 'true'
+      run: sleep 30
+
+    - name: Get Droplet IP
+      if: github.event.inputs.delete_vm != 'true'
+      id: droplet_ip
+      run: |
+        IP=$(doctl compute droplet list ${{ env.droplet_name }} --format PublicIPv4 --no-header)
+        echo "Retrieved IP: $IP"
+        echo "::set-output name=ip::$IP"
+        echo "droplet_ip=${IP}" >> $GITHUB_ENV
+
+    - name: Debug Environment Variable
+      if: github.event.inputs.delete_vm != 'true'
+      run: |
+        echo "Environment Variable droplet_ip: ${{ env.droplet_ip }}"
+
+    - name: Debug IP Address
+      if: github.event.inputs.delete_vm != 'true'
+      run: |
+        echo "Droplet IP: ${{ env.droplet_ip }}"
+
+    - name: Wait for SSH
+      if: github.event.inputs.delete_vm != 'true'
+      run: sleep 60
+
+    - name: Register IP in Route 53
+      if: github.event.inputs.delete_vm != 'true'
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ github.event.inputs.aws_region }}s
+      run: |
+        aws route53 change-resource-record-sets --hosted-zone-id ${{ secrets.AWS_HOSTED_ZONE_ID }} --change-batch '
+        {
+          "Changes": [
+            {
+              "Action": "UPSERT",
+              "ResourceRecordSet": {
+                "Name": " ${{ env.droplet_name }}.${{ github.event.inputs.domain_name }}",
+                "Type": "A",
+                "TTL": 300,
+                "ResourceRecords": [
+                  {
+                    "Value": "${{ env.droplet_ip }}"
+                  }
+                ]
+              }
+            }
+          ]
+        }'
+
+    - name: Run scripts on Droplet
+      if: github.event.inputs.delete_vm != 'true'
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ env.droplet_ip }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        command_timeout: 30m
+        script: |
+          cd ${{ secrets.SSH_USERNAME }}
+          git clone -b ${{ github.event.inputs.git_branch }} ${{ github.event.inputs.repo_url }} ${{ github.event.inputs.project_name }}
+          cd ${{ github.event.inputs.project_name }}
+          chmod +x ${{ github.event.inputs.script_name }}
+          ${{ github.event.inputs.script_name }} || exit $?
+
+    - name: Destroy Droplet
+      if: github.event.inputs.delete_vm == 'true' && github.event.inputs.vm_name != ''
+      run: |
+        doctl compute droplet delete ${{ github.event.inputs.vm_name }} --force
