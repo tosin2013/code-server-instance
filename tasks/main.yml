@@ -22,6 +22,8 @@
       - curl
       - software-properties-common
       - openssl
+      - make
+      - git
     state: present
 
 - name: Add Docker GPG key
@@ -47,7 +49,7 @@
     name: ubuntu
     groups: docker
     append: yes
-    
+
 - name: Create Nginx Proxy Manager directory
   file:
     path: ~/nginx-proxy-manager
