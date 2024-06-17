@@ -33,7 +33,7 @@ on:
         required: false
       domain_name:
         description: 'Domain name to register'
-        default: 'devika.example.com'
+        default: 'example.com'
         required: true
       aws_region:
         description: 'AWS region'
