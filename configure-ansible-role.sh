@@ -36,7 +36,7 @@ fi
 
 # Update and upgrade the system
 log "Updating and upgrading the system"
-sudo apt-get update && sudo apt-get upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
+sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
 if [ $? -ne 0 ]; then
     log "Failed to update and upgrade the system"
     exit 1
@@ -45,7 +45,7 @@ fi
 # Install Ansible if it is not already installed
 if ! command -v ansible &> /dev/null; then
     log "Installing Ansible"
-    sudo apt-get install -y ansible -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
+    sudo DEBIAN_FRONTEND=noninteractive  apt-get install -y ansible -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
     if [ $? -ne 0 ]; then
         log "Failed to install Ansible"
         exit 1
