@@ -4,6 +4,10 @@ services:
     image: 'jc21/nginx-proxy-manager:latest'
     restart: always
     network_mode: "host"
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
     environment:
       DB_SQLITE_FILE: "/data/database.sqlite"
     volumes:
@@ -13,7 +17,6 @@ services:
   db:
     image: 'jc21/mariadb-aria:latest'
     restart: always
-    network_mode: "host"
     environment:
       MYSQL_ROOT_PASSWORD: '{{ mysql_root_password }}'
       MYSQL_DATABASE: '{{ mysql_database }}'
